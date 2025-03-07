@@ -1,0 +1,4 @@
+BasedOnStyle: LLVM
+CommentPragmas: '.*'
+ReflowComments: false
+AlignTrailingComments: false
