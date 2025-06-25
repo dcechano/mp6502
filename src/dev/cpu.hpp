@@ -14,7 +14,7 @@ public:
     _irx = 0;
     _iry = 0;
     _proc_stat = 0;
-    _r_status.reset();
+    _pstat_r.reset();
     std::cout << "CPU initialized" << std::endl;
   }
 
@@ -38,5 +38,5 @@ private:
    * |||` `- Unused
    * ||` `- Overflow
    */
-  std::bitset<8> _r_status; // Processor Status Register
+  std::bitset<8> _pstat_r; // Processor Status Register
 };
