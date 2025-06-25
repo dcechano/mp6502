@@ -15,6 +15,8 @@ Bus::Bus() {
   _apu_test_rgstr.fill(0);
 }
 
+Bus::~Bus() {}
+
 uint8_t Bus::read(uint16_t addr) {
   if (addr < 0x2000) {
     return (*_iram)[addr & 0x07FF];
