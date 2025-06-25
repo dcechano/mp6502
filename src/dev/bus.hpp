@@ -2,8 +2,16 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <memory>
 
-#include "cpu.hpp"
+#include "./cpu.hpp"
+
+constexpr uint16_t RAM_SIZE = 2048;
+constexpr uint16_t PPU_REG_SIZE = 8;
+constexpr uint16_t APU_IO_REG_SIZE = 24;
+constexpr uint16_t APU_TEST_REG_SIZE = 8;
+
+typedef std::unique_ptr<std::array<uint8_t, RAM_SIZE>> InternalRAM;
 
 /*
  *                                      CPU Memory Map
@@ -31,43 +39,15 @@
  */
 class Bus {
 private:
-  CPU cpu;
-  std::array<uint8_t, 2048> ram;
-  std::array<uint8_t, 8> ppu_registers;
-  std::array<uint8_t, 24> apu_io_registers;
-  std::array<uint8_t, 8> apu_test_registers;
+  CPU _cpu; // CPU
+  APU _apu; // Audio Processing Unit
+  InternalRAM _iram; // 2KB internal RAM on heap
+  std::array<uint8_t, PPU_REG_SIZE> _ppu_rgstr; // PPU registers
+  std::array<uint8_t, APU_IO_REG_SIZE> _apu_io_rgstr; // APU I/O registers
+  std::array<uint8_t, APU_TEST_REG_SIZE> _apu_test_rgstr; // APU test registers
 
 public:
-  Bus() {
-    std::cout << "Bus initialized" << std::endl;
-    ram.fill(0);
-    ppu_registers.fill(0);
-    apu_io_registers.fill(0);
-    apu_test_registers.fill(0);
-  }
-
-  uint8_t read(uint16_t addr) {
-    if (addr < 0x2000) {
-      return ram[addr & 0x07FF];
-    } else if (addr < 0x4000) {
-      return ppu_registers[addr & 0x0007];
-    } else if (addr < 0x4018) {
-      return apu_io_registers[addr - 0x4000];
-    } else if (addr < 0x4020) {
-      return apu_test_registers[addr - 0x4018];
-    }
-    return 0;
-  }
-
-  void write(uint16_t addr, uint8_t data) {
-    if (addr < 0x2000) {
-      ram[addr & 0x07FF] = data;
-    } else if (addr < 0x4000) {
-      ppu_registers[addr & 0x0007] = data;
-    } else if (addr < 0x4018) {
-      apu_io_registers[addr - 0x4000] = data;
-    } else if (addr < 0x4020) {
-      apu_test_registers[addr - 0x4018] = data;
-    }
-  }
+  Bus();
+  uint8_t read(uint16_t addr);
+  void write(uint16_t addr, uint8_t data);
 };

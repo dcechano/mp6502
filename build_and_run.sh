@@ -1,22 +1,20 @@
 #!/bin/bash
 
+clang-format -i ./*.h ./*.hpp ./*.c ./*.cpp > /dev/null 2>&1
 
 SOURCE_FILES=(
-    "apu.cpp"
-    "cpu.cpp"
-    "bus.cpp"
+    "src/dev/apu.cpp"
+    "src/dev/cpu.cpp"
+    "src/dev/bus.cpp"
+    "src/op/instruction.cpp"
+    "src/io/rom.cpp"
 )
 
-clang-format -i ./*.h ./*.hpp ./*.c ./*.cpp > /dev/null 2>&1
-if [ -f main ]; then
-    rm main
+if [ ! -d bin ]; then
+    mkdir bin
+elif [ -f bin/main ]; then
+    rm bin/main
 fi
 
-echo "Compiling..."
-
-g++ main.cpp ${SOURCE_FILES[@]} -o main
-
-echo ""
-echo "Compilation complete with exit code $?"
-
-./main
+g++ src/main.cpp ${SOURCE_FILES[@]} -o bin/main
+./bin/main

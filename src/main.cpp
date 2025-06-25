@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include "bus.hpp"
+#include "dev/bus.hpp"
 
 int main() {
   std::cout << "Hello, World!" << std::endl;
   Bus bus;
-  return 0;
+  return 1;
 }
