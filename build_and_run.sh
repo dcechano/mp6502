@@ -6,7 +6,8 @@ SOURCE_FILES=(
     "src/dev/apu.cpp"
     "src/dev/cpu.cpp"
     "src/dev/bus.cpp"
-    "src/op/instruction.cpp"
+    "src/op/operation.cpp"
+    "src/op/addr_mode.cpp"
     "src/io/rom.cpp"
 )
 

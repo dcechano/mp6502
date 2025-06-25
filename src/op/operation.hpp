@@ -1,9 +1,31 @@
 #pragma once
 
-namespace Instruction {
+#include "./addr_mode.hpp"
+#include <cstdint>
+#include <vector>
+
+namespace Operation {
+
+struct Instruction {
+  uint8_t opcode;
+  uint8_t (*addr_mode)(void);
+  uint8_t (*op_exec)(void);
+  uint8_t cycles;
+};
+
+uint8_t noop() { return 0; }
+class OpList {
+public:
+  OpList();
+  ~OpList();
+  Instruction get(size_t);
+
+private:
+  std::vector<Instruction> op_list;
+};
 
 /* 
- * 6502 Instruction Set Reference
+ * 6502 Operation Set Reference
  * http://www.6502.org/users/obelisk/6502/instructions.html
  *
 */
@@ -87,4 +109,4 @@ enum OpCode {
   INVALID, // Invalid Operation
 
 };
-} // namespace Instruction
+} // namespace Operation

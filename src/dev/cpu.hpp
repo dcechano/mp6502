@@ -39,4 +39,5 @@ private:
    * ||` `- Overflow
    */
   std::bitset<8> _pstat_r; // Processor Status Register
+
 };
