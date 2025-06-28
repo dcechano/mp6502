@@ -4,7 +4,7 @@
 #include <iostream>
 #include <memory>
 
-#include "./cpu.hpp"
+#include "./nes6502.hpp"
 
 constexpr uint16_t RAM_SIZE = 2048;
 constexpr uint16_t PPU_REG_SIZE = 8;
@@ -14,7 +14,7 @@ constexpr uint16_t APU_TEST_REG_SIZE = 8;
 typedef std::unique_ptr<std::array<uint8_t, RAM_SIZE>> InternalRAM;
 
 /*
- *                                      CPU Memory Map
+ *                                      NES6502 Memory Map
  * +-----------------------------------------------------------------------------------------------+
  * | Address Range  |   Size   |                  Description                  |     Catagory      |
  * |===============================================================================================|
@@ -39,7 +39,7 @@ typedef std::unique_ptr<std::array<uint8_t, RAM_SIZE>> InternalRAM;
  */
 class Bus {
 private:
-  CPU _cpu; // CPU
+  NES6502 _cpu; // NES6502
   APU _apu; // Audio Processing Unit
   InternalRAM _iram; // 2KB internal RAM on heap
   std::array<uint8_t, PPU_REG_SIZE> _ppu_rgstr; // PPU registers
