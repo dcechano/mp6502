@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "./bus.hpp"
-#include "./cpu.hpp"
+#include "./nes6502.hpp"
 
 Bus::Bus() {
   std::cout << "Bus initialized" << std::endl;
@@ -13,6 +13,7 @@ Bus::Bus() {
   _ppu_rgstr.fill(0);
   _apu_io_rgstr.fill(0);
   _apu_test_rgstr.fill(0);
+  _cpu.set_bus(*this);
 }
 
 Bus::~Bus() {}
