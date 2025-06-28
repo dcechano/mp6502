@@ -13,7 +13,6 @@ struct Instruction {
   uint8_t cycles;
 };
 
-uint8_t noop() { return 0; }
 class OpList {
 public:
   OpList();
@@ -29,84 +28,85 @@ private:
  * http://www.6502.org/users/obelisk/6502/instructions.html
  *
 */
-enum OpCode {
-  /* Load/Store Operations */
-  LDA, // Load Accumulator
-  LDX, // Load X Register
-  LDY, // Load Y Register
-  STA, // Store Accumulator
-  STX, // Store X Register
-  STY, // Store Y Register
+/* Load/Store Operations */
+uint8_t LDA(); // Load Accumulator
+uint8_t LDX(); // Load X Register
+uint8_t LDY(); // Load Y Register
+uint8_t STA(); // Store Accumulator
+uint8_t STX(); // Store X Register
+uint8_t STY(); // Store Y Register
 
-  /* Register Transfers */
-  TAX, // Transfer Accumulator to X
-  TAY, // Transfer Accumulator to Y
-  TXA, // Transfer X to Accumulator
-  TYA, // Transfer Y to Accumulator
+/* Register Transfers */
+uint8_t TAX(); // Transfer Accumulator to X
+uint8_t TAY(); // Transfer Accumulator to Y
+uint8_t TXA(); // Transfer X to Accumulator
+uint8_t TYA(); // Transfer Y to Accumulator
 
-  /* Stack Operations */
-  TSX, // Transfer Stack Pointer to X
-  TXS, // Transfer X to Stack Pointer
-  PHA, // Push Accumulator
-  PLA, // Pop Accumulator
-  PHP, // Push Processor Status
-  PLP, // Pop Processor Status
+/* Stack Operations */
+uint8_t TSX(); // Transfer Stack Pointer to X
+uint8_t TXS(); // Transfer X to Stack Pointer
+uint8_t PHA(); // Push Accumulator
+uint8_t PLA(); // Pop Accumulator
+uint8_t PHP(); // Push Processor Status
+uint8_t PLP(); // Pop Processor Status
 
-  /* Bitwise Operations */
-  AND, // AND
-  EOR, // Exclusive OR
-  ORA, // OR
-  BIT, // Test Bits
+/* Bitwise Operations */
+uint8_t AND(); // AND
+uint8_t EOR(); // Exclusive OR
+uint8_t ORA(); // OR
+uint8_t BIT(); // Test Bits
 
-  /* Arithmetic Operations */
-  ADC, // Add with Carry
-  SBC, // Subtract with Carry
-  INC, // Increment Memory
-  DEC, // Decrement Memory
+/* Arithmetic Operations */
+uint8_t ADC(); // Add with Carry
+uint8_t SBC(); // Subtract with Carry
+uint8_t CMP(); // Compare Accumulator:w
+uint8_t CPX(); // Compare X
+uint8_t CPY(); // Compare Y
 
-  /* Increment/Decrement Operations */
-  INX, // Increment X
-  INY, // Increment Y
-  DEX, // Decrement X
-  DEY, // Decrement Y
+/* Increment/Decrement Operations */
+uint8_t INX(); // Increment X
+uint8_t INY(); // Increment Y
+uint8_t INC(); // Increment Memory
+uint8_t DEC(); // Decrement Memory
+uint8_t DEX(); // Decrement X
+uint8_t DEY(); // Decrement Y
 
-  /* Shift Operations */
-  ASL, // Arithmetic Shift Left
-  LSR, // Logical Shift Right
-  ROL, // Rotate Left
-  ROR, // Rotate Right
+/* Shift Operations */
+uint8_t ASL(); // Arithmetic Shift Left
+uint8_t LSR(); // Logical Shift Right
+uint8_t ROL(); // Rotate Left
+uint8_t ROR(); // Rotate Right
 
-  /* Jump Operations */
-  JMP, // Jump
-  JSR, // Jump to Subroutine
-  RTS, // Return from Subroutine
+/* Jump Operations */
+uint8_t JMP(); // Jump
+uint8_t JSR(); // Jump to Subroutine
+uint8_t RTS(); // Return from Subroutine
 
-  /* Branching */
-  BCC, // Branch on Carry Clear
-  BCS, // Branch on Carry Set
-  BEQ, // Branch on Equal
-  BMI, // Branch on Minus
-  BNE, // Branch on Not Equal
-  BPL, // Branch on Plus
-  BVC, // Branch on Overflow Clear
-  BVS, // Branch on Overflow Set
+/* Branching */
+uint8_t BCC(); // Branch on Carry Clear
+uint8_t BCS(); // Branch on Carry Set
+uint8_t BEQ(); // Branch on Equal
+uint8_t BMI(); // Branch on Minus
+uint8_t BNE(); // Branch on Not Equal
+uint8_t BPL(); // Branch on Plus
+uint8_t BVC(); // Branch on Overflow Clear
+uint8_t BVS(); // Branch on Overflow Set
 
-  /* Status Flag Changes */
-  CLC, // Clear Carry Flag
-  CLD, // Clear Decimal Flag
-  CLI, // Clear Interrupt Disable
-  CLV, // Clear Overflow Flag
-  SEC, // Set Carry Flag
-  SED, // Set Decimal Flag
-  SEI, // Set Interrupt Disable
+/* Status Flag Changes */
+uint8_t CLC(); // Clear Carry Flag
+uint8_t CLD(); // Clear Decimal Flag
+uint8_t CLI(); // Clear Interrupt Disable
+uint8_t CLV(); // Clear Overflow Flag
+uint8_t SEC(); // Set Carry Flag
+uint8_t SED(); // Set Decimal Flag
+uint8_t SEI(); // Set Interrupt Disable
 
-  /* System Functions */
-  BRK, // Force Interrupt
-  NOP, // No Operation
-  RTI, // Return from Interrupt
+/* System Functions */
+uint8_t BRK(); // Force Interrupt
+uint8_t NOP(); // No Operation
+uint8_t RTI(); // Return from Interrupt
 
-  /* Invalid Operations */
-  INVALID, // Invalid Operation
+/* Invalid Operations */
+uint8_t INVALID(); // Invalid Operation
 
-};
 } // namespace Operation
