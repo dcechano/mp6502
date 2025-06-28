@@ -2,3 +2,8 @@ BasedOnStyle: LLVM
 CommentPragmas: '.*'
 ReflowComments: false
 AlignTrailingComments: false
+AlignConsecutiveAssignments: 
+    AcrossEmptyLines: true
+    AcrossComments: true
+AlignConsecutiveDeclarations: AcrossEmptyLines
+AlignArrayOfStructures: Right
