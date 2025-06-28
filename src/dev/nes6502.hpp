@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "./apu.hpp"
+#include "./bus.hpp"
 #include <bitset>
 #include <cstdint>
 #include <vector>
@@ -12,26 +13,40 @@ public:
   ~NES6502();
 
 private:
-  uint16_t _pc; // Program Counter
-  uint8_t  _stp; // Stack Pointer
-  uint8_t  _acc; // Accumulator
-  uint8_t  _irx; // Index Register X
-  uint8_t  _iry; // Index Register Y
-  uint8_t  _proc_stat; // Processor Status
-  /*
-   * 7  bit  0
-   * ---- ----
-   * NVss DIZC
-   * |||| ||||
-   * |||| |||+- Carry
-   * |||| |||`- Zero
-   * |||| ||`- Interrupt Disable
-   * |||| |`- Decimal Mode
-   * |||| `- Break
-   * |||` `- Unused
-   * ||` `- Overflow
+  /* Opcode. The current instruction being executed. */
+  uint8_t _opcode;
+  /* Program Counter. The address of the next instruction to be executed. */
+  uint16_t _pc;
+  /* Stack Pointer. 0xFF is the top of the stack.
+   * Pushing values to the stack decrements the stack pointer.
    */
-  std::bitset<8> _pstat_r; // Processor Status Register
+  uint8_t _stp;
+  /* Accumulator. The register that holds the result of arithmetic operations. */
+  uint8_t _acc;
+  /* Index Register X. The register that holds the index for indexed addressing modes. */
+  uint8_t _irx;
+  /* Index Register Y. The register that holds the index for indexed addressing modes. */
+  uint8_t _iry;
+  /*
+   * Processor Status Register
+   * 
+   * This diagram shows big endian order for the purpose of 
+   * printing, but in reality we use the indices shown.
+   * Index 0 is Carry, 1 is Zero, etc.
+   * 
+   * 76543210
+   * NV1BDIZC
+   * ||||||||
+   * |||||||+- Carry
+   * ||||||+-- Zero
+   * |||||+-- Interrupt Disable
+   * ||||+-- Decimal Mode
+   * |||+--- Break
+   * ||+---- Unused
+   * |+---- Overflow
+   * +-- Negative
+   */
+  std::bitset<8> _pstat_r;
 
   struct Instruction {
     uint8_t opcode;
@@ -40,6 +55,20 @@ private:
     uint8_t cycles;
   };
   std::vector<Instruction> _instr;
+
+  Bus                      _bus;
+
+private:
+  /* Cycle operations */
+
+  /* Fetch the next instruction from memory. */
+  uint8_t fetch();
+
+  /* Read a byte from memory. */
+  uint8_t read(uint16_t addr);
+
+  /* Write a byte to memory. */
+  void write(uint16_t addr, uint8_t data);
 
 private:
   /*
@@ -205,7 +234,15 @@ private:
  *
 */
   /* Load/Store Operations */
+  /**
+   * Loads a byte of memory into the accumulator setting the zero and
+   * negative flags as appropriate.
+   */
   uint8_t LDA(); // Load Accumulator
+
+  /**
+   * Loads a byte of memory into the X register setting the zero and
+   */
   uint8_t LDX(); // Load X Register
   uint8_t LDY(); // Load Y Register
   uint8_t STA(); // Store Accumulator
@@ -284,4 +321,25 @@ private:
 
   /* Invalid Operations */
   uint8_t INVALID(); // Invalid Operation
+
+private:
+  /* Flag operations*/
+
+  void    set_carry(bool flag);
+  void    set_zero(bool flag);
+  void    set_interrupt_disable(bool flag);
+  void    set_decimal_mode(bool flag);
+  void    set_break(bool flag);
+  void    set_unused(bool flag);
+  void    set_overflow(bool flag);
+  void    set_negative(bool flag);
+
+  uint8_t get_carry();
+  uint8_t get_zero();
+  uint8_t get_interrupt_disable();
+  uint8_t get_decimal_mode();
+  uint8_t get_break();
+  uint8_t get_unused();
+  uint8_t get_overflow();
+  uint8_t get_negative();
 };

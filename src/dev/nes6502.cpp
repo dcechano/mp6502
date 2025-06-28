@@ -1,14 +1,15 @@
 #include "./nes6502.hpp"
+#include <cstdint>
 #include <iostream>
+#include <stdckdint.h>
 #include <vector>
 
 NES6502::NES6502() {
   _pc = 0x0000;
-  _stp = 0xFD;
+  _stp = 0xFF;
   _acc = 0;
   _irx = 0;
   _iry = 0;
-  _proc_stat = 0;
   _pstat_r.reset();
   _instr = {
       {0x00,  &NES6502::IMM,     &NES6502::BRK, 7},
@@ -273,21 +274,80 @@ NES6502::NES6502() {
 
 NES6502::~NES6502() { std::cout << "NES6502 destroyed" << std::endl; }
 
+uint8_t NES6502::fetch() {
+  uint8_t byte = _bus.read(_pc);
+  _pc++;
+  return byte;
+}
+
+uint8_t NES6502::read(uint16_t addr) { return _bus.read(addr); }
+
+void    NES6502::write(uint16_t addr, uint8_t data) { _bus.write(addr, data); }
+
 /* Addressing Modes */
 
-uint8_t NES6502::ABS() { return 0; }
-uint8_t NES6502::ABSX() { return 0; }
-uint8_t NES6502::ABSY() { return 0; }
-uint8_t NES6502::ACC() { return 0; }
-uint8_t NES6502::IMM() { return 0; }
-uint8_t NES6502::IMP() { return 0; }
-uint8_t NES6502::IND() { return 0; }
-uint8_t NES6502::INDX() { return 0; }
-uint8_t NES6502::INDY() { return 0; }
-uint8_t NES6502::REL() { return 0; }
-uint8_t NES6502::ZP0() { return 0; }
-uint8_t NES6502::ZPX() { return 0; }
-uint8_t NES6502::ZPY() { return 0; }
+uint8_t NES6502::ABS() {
+  uint16_t lo = fetch();
+  uint16_t hi = fetch();
+  uint16_t addr = static_cast<uint16_t>(hi) << 8 | static_cast<uint16_t>(lo);
+  return read(addr);
+}
+
+uint8_t NES6502::ABSX() {
+  uint16_t operand = fetch();
+  uint16_t addr = operand + _irx;
+  return read(addr);
+}
+
+uint8_t NES6502::ABSY() {
+  uint16_t operand = fetch();
+  uint16_t addr = operand + _iry;
+  return read(addr);
+}
+
+uint8_t NES6502::ACC() { return _acc; }
+
+uint8_t NES6502::IMM() { return fetch(); }
+
+uint8_t NES6502::IMP() { return _acc; }
+
+uint8_t NES6502::IND() {
+  uint16_t lo = fetch();
+  uint16_t hi = fetch();
+  uint16_t addr = hi << 8 | lo;
+  return read(addr);
+}
+
+uint8_t NES6502::INDX() {
+  uint8_t  operand = fetch();
+  uint16_t addr = static_cast<uint8_t>(operand + _irx);
+  return read(addr);
+}
+
+uint8_t NES6502::INDY() {
+  uint8_t  operand = fetch();
+  uint16_t addr = static_cast<uint16_t>(operand) + _iry;
+  return read(addr);
+}
+
+uint8_t NES6502::REL() {
+  uint8_t operand = fetch();
+  int16_t signed_offset;
+
+  if (operand & 0x80) {
+    signed_offset = static_cast<int16_t>(operand) | 0xFF00;
+  } else {
+    signed_offset = static_cast<int16_t>(operand);
+  }
+
+  return read(_pc + signed_offset);
+}
+
+uint8_t NES6502::ZP0() { return read(fetch()); }
+uint8_t NES6502::ZPX() { return read(fetch() + _irx); }
+uint8_t NES6502::ZPY() { return read(fetch() + _iry); }
+
+/* Operations */
 
 // Load/Store Operations
 uint8_t NES6502::LDA() { return 0; }
@@ -369,3 +429,21 @@ uint8_t NES6502::RTI() { return 0; }
 
 // Invalid Operations
 uint8_t NES6502::INVALID() { return 0; }
+
+void    NES6502::set_carry(bool flag) { _pstat_r.set(0, flag); }
+void    NES6502::set_zero(bool flag) { _pstat_r.set(1, flag); }
+void    NES6502::set_interrupt_disable(bool flag) { _pstat_r.set(2, flag); }
+void    NES6502::set_decimal_mode(bool flag) { _pstat_r.set(3, flag); }
+void    NES6502::set_break(bool flag) { _pstat_r.set(4, flag); }
+void    NES6502::set_unused(bool flag) { _pstat_r.set(5, flag); }
+void    NES6502::set_overflow(bool flag) { _pstat_r.set(6, flag); }
+void    NES6502::set_negative(bool flag) { _pstat_r.set(7, flag); }
+
+uint8_t NES6502::get_carry() { return _pstat_r.test(0); }
+uint8_t NES6502::get_zero() { return _pstat_r.test(1); }
+uint8_t NES6502::get_interrupt_disable() { return _pstat_r.test(2); }
+uint8_t NES6502::get_decimal_mode() { return _pstat_r.test(3); }
+uint8_t NES6502::get_break() { return _pstat_r.test(4); }
+uint8_t NES6502::get_unused() { return _pstat_r.test(5); }
+uint8_t NES6502::get_overflow() { return _pstat_r.test(6); }
+uint8_t NES6502::get_negative() { return _pstat_r.test(7); }
