@@ -2,15 +2,18 @@
 #include <iostream>
 
 #include "./apu.hpp"
-#include "./bus.hpp"
 #include <bitset>
 #include <cstdint>
 #include <vector>
+
+class Bus;
 
 class NES6502 {
 public:
   NES6502();
   ~NES6502();
+
+  void set_bus(Bus &bus);
 
 private:
   /* Opcode. The current instruction being executed. */
@@ -56,7 +59,7 @@ private:
   };
   std::vector<Instruction> _instr;
 
-  Bus                      _bus;
+  Bus                     *_bus = nullptr;
 
 private:
   /* Cycle operations */

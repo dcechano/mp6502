@@ -13,6 +13,7 @@ Bus::Bus() {
   _ppu_rgstr.fill(0);
   _apu_io_rgstr.fill(0);
   _apu_test_rgstr.fill(0);
+  _cpu.set_bus(*this);
 }
 
 Bus::~Bus() {}

@@ -1,4 +1,5 @@
 #include "./nes6502.hpp"
+#include "./bus.hpp"
 #include <cstdint>
 #include <iostream>
 #include <stdckdint.h>
@@ -274,15 +275,17 @@ NES6502::NES6502() {
 
 NES6502::~NES6502() { std::cout << "NES6502 destroyed" << std::endl; }
 
+void    NES6502::set_bus(Bus &bus) { _bus = &bus; }
+
 uint8_t NES6502::fetch() {
-  uint8_t byte = _bus.read(_pc);
+  uint8_t byte = _bus->read(_pc);
   _pc++;
   return byte;
 }
 
-uint8_t NES6502::read(uint16_t addr) { return _bus.read(addr); }
+uint8_t NES6502::read(uint16_t addr) { return _bus->read(addr); }
 
-void    NES6502::write(uint16_t addr, uint8_t data) { _bus.write(addr, data); }
+void    NES6502::write(uint16_t addr, uint8_t data) { _bus->write(addr, data); }
 
 /* Addressing Modes */
 

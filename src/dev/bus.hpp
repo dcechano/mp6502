@@ -6,10 +6,10 @@
 
 #include "./nes6502.hpp"
 
-constexpr uint16_t RAM_SIZE = 2048;
-constexpr uint16_t PPU_REG_SIZE = 8;
-constexpr uint16_t APU_IO_REG_SIZE = 24;
-constexpr uint16_t APU_TEST_REG_SIZE = 8;
+constexpr uint16_t                                     RAM_SIZE = 2048;
+constexpr uint16_t                                     PPU_REG_SIZE = 8;
+constexpr uint16_t                                     APU_IO_REG_SIZE = 24;
+constexpr uint16_t                                     APU_TEST_REG_SIZE = 8;
 
 typedef std::unique_ptr<std::array<uint8_t, RAM_SIZE>> InternalRAM;
 
@@ -39,16 +39,16 @@ typedef std::unique_ptr<std::array<uint8_t, RAM_SIZE>> InternalRAM;
  */
 class Bus {
 private:
-  NES6502 _cpu; // NES6502
-  APU _apu; // Audio Processing Unit
-  InternalRAM _iram; // 2KB internal RAM on heap
-  std::array<uint8_t, PPU_REG_SIZE> _ppu_rgstr; // PPU registers
-  std::array<uint8_t, APU_IO_REG_SIZE> _apu_io_rgstr; // APU I/O registers
+  NES6502                                _cpu; // NES6502
+  APU                                    _apu; // Audio Processing Unit
+  InternalRAM                            _iram; // 2KB internal RAM on heap
+  std::array<uint8_t, PPU_REG_SIZE>      _ppu_rgstr; // PPU registers
+  std::array<uint8_t, APU_IO_REG_SIZE>   _apu_io_rgstr; // APU I/O registers
   std::array<uint8_t, APU_TEST_REG_SIZE> _apu_test_rgstr; // APU test registers
 
 public:
   Bus();
   ~Bus();
   uint8_t read(uint16_t addr);
-  void write(uint16_t addr, uint8_t data);
+  void    write(uint16_t addr, uint8_t data);
 };
