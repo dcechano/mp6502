@@ -78,7 +78,7 @@ private:
   uint16_t read_pc16();
 
   /* Read a byte from memory. */
-  uint8_t read(uint16_t addr);
+  uint8_t read8(uint16_t addr);
 
   /* Read a 16-bit value from memory. */
   uint16_t read16(uint16_t addr);
@@ -88,6 +88,9 @@ private:
 
   /* Write a byte to memory. */
   void write(uint16_t addr, uint8_t data);
+
+  void push_stk(uint8_t data);
+  uint8_t pop_stk();
 
 private:
   /*
