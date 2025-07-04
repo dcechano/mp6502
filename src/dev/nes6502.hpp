@@ -1,19 +1,15 @@
 #pragma once
 #include <iostream>
 
-#include "./apu.hpp"
+#include "./bus.hpp"
 #include <bitset>
 #include <cstdint>
 #include <vector>
-
-class Bus;
 
 class NES6502 {
 public:
   NES6502();
   ~NES6502();
-
-  void set_bus(Bus &bus);
 
 private:
   /* Opcode. The current instruction being executed. */
@@ -30,6 +26,13 @@ private:
   uint8_t _irx;
   /* Index Register Y. The register that holds the index for indexed addressing modes. */
   uint8_t _iry;
+  /* Data fetched from memory */
+  uint8_t _fetched_data;
+  /* Memory address */
+  uint16_t _abs_addr;
+  /* Relative address */
+  uint16_t _rel_addr;
+
   /*
    * Processor Status Register
    * 
@@ -53,22 +56,35 @@ private:
 
   struct Instruction {
     uint8_t opcode;
-    uint8_t (NES6502::*addr_mode)(void) = nullptr;
+    void (NES6502::*addr_mode)(void) = nullptr;
     uint8_t (NES6502::*op_exec)(void) = nullptr;
     uint8_t cycles;
   };
   std::vector<Instruction> _instr;
 
-  Bus                     *_bus = nullptr;
+  Bus                      _bus;
 
 private:
   /* Cycle operations */
 
-  /* Fetch the next instruction from memory. */
-  uint8_t fetch();
+  /* Fetch the next byte pointed to by the program counter.
+   * Increments the program counter by 1.
+   */
+  uint8_t read_pc8();
+
+  /* Fetch the next 2 bytes pointed to by the program counter.
+   * Increments the program counter by 2.
+   */
+  uint16_t read_pc16();
 
   /* Read a byte from memory. */
   uint8_t read(uint16_t addr);
+
+  /* Read a 16-bit value from memory. */
+  uint16_t read16(uint16_t addr);
+
+  /* Read a 16-bit value from zero page memory. */
+  uint16_t read16_zp(uint16_t addr);
 
   /* Write a byte to memory. */
   void write(uint16_t addr, uint8_t data);
@@ -109,7 +125,7 @@ private:
  *   - Bytes: 3 (opcode + low byte + high byte)
  *   - Cycles: 4
  */
-  uint8_t ABS();
+  void ABS();
 
   /**
  * ABSX (Absolute, X):
@@ -119,7 +135,7 @@ private:
  *   - Bytes: 3 (opcode + low byte + high byte)
  *   - Cycles: 4 (5 if page boundary crossed)
  */
-  uint8_t ABSX();
+  void ABSX();
 
   /**
  * ABSY (Absolute, Y):
@@ -129,7 +145,7 @@ private:
  *   - Bytes: 3 (opcode + low byte + high byte)
  *   - Cycles: 4 (5 if page boundary crossed)
  */
-  uint8_t ABSY();
+  void ABSY();
 
   /**
  * ACC (Accumulator):
@@ -138,7 +154,7 @@ private:
  *   - Example: LDA #$42 loads the value $42 directly into the accumulator
  *   - Bytes: 1 (opcode only)
  */
-  uint8_t ACC();
+  void ACC();
 
   /**
  * IMM (Immediate):
@@ -148,7 +164,7 @@ private:
  *   - Bytes: 2 (opcode + immediate value)
  *   - Cycles: 2
  */
-  uint8_t IMM();
+  void IMM();
 
   /**
  * IMP (Implied):
@@ -158,7 +174,7 @@ private:
  *   - Bytes: 1 (opcode only)
  *   - Cycles: 2
  */
-  uint8_t IMP();
+  void IMP();
 
   /**
  * REL (Relative):
@@ -168,7 +184,7 @@ private:
  *   - Bytes: 2 (opcode + signed offset)
  *   - Cycles: 2 (3 if branch taken, 4 if page boundary crossed)
  */
-  uint8_t REL();
+  void REL();
 
   /**
  * IND (Indirect):
@@ -178,7 +194,7 @@ private:
  *   - Bytes: 3 (opcode + low byte + high byte)
  *   - Cycles: 5
  */
-  uint8_t IND();
+  void IND();
 
   /**
  * INDX (Indirect, X):
@@ -188,7 +204,7 @@ private:
  *   - Bytes: 2 (opcode + zero page address)
  *   - Cycles: 6
  */
-  uint8_t INDX();
+  void INDX();
 
   /**
  * INDY (Indirect, Y):
@@ -198,7 +214,7 @@ private:
  *   - Bytes: 2 (opcode + zero page address)
  *   - Cycles: 5 (6 if page boundary crossed)
  */
-  uint8_t INDY();
+  void INDY();
 
   /**
  * ZP (Zero Page):
@@ -208,7 +224,7 @@ private:
  *   - Bytes: 2 (opcode + zero page address)
  *   - Cycles: 3
  */
-  uint8_t ZP0();
+  void ZP0();
 
   /**
  * ZPX (Zero Page, X):
@@ -218,7 +234,7 @@ private:
  *   - Bytes: 2 (opcode + zero page address)
  *   - Cycles: 4
  */
-  uint8_t ZPX();
+  void ZPX();
 
   /**
  * ZPY (Zero Page, Y):
@@ -228,7 +244,7 @@ private:
  *   - Bytes: 2 (opcode + zero page address)
  *   - Cycles: 4
  */
-  uint8_t ZPY();
+  void ZPY();
 
 private:
   /* 
