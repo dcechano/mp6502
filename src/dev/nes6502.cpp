@@ -1,5 +1,6 @@
 #include "./nes6502.hpp"
 #include "./bus.hpp"
+#include <cassert>
 #include <cstdint>
 #include <iostream>
 #include <stdckdint.h>
@@ -275,6 +276,18 @@ NES6502::NES6502() {
 
 NES6502::~NES6502() { std::cout << "NES6502 destroyed" << std::endl; }
 
+/**
+ * Check if there is an overflow condition for the operation a - b = result.
+ *
+ * @param a First operand
+ * @param b Second operand
+ * @param result Result of the operation
+ */
+static bool check_overflow(uint8_t a, uint8_t b, uint8_t result) {
+  return (a & 0x80) != (b & 0x80) && (a & 0x80) != (result & 0x80);
+}
+
+
 uint8_t NES6502::read_pc8() {
   uint8_t byte = _bus.read(_pc);
   _pc++;
@@ -287,23 +300,34 @@ uint16_t NES6502::read_pc16() {
   return static_cast<uint16_t>(hi) << 8 | static_cast<uint16_t>(lo);
 }
 
-uint8_t  NES6502::read(uint16_t addr) { return _bus.read(addr); }
+uint8_t  NES6502::read8(uint16_t addr) { return _bus.read(addr); }
 uint16_t NES6502::read16(uint16_t addr) {
-  uint8_t lo = read(addr);
-  uint8_t hi = read(addr + 1);
+  uint8_t lo = read8(addr);
+  uint8_t hi = read8(addr + 1);
   return static_cast<uint16_t>(hi) << 8 | static_cast<uint16_t>(lo);
 }
 
 uint16_t NES6502::read16_zp(uint16_t zp_addr) {
+  assert((zp_addr & 0x00FF) == zp_addr);
   uint8_t  wrapped_addr = static_cast<uint8_t>(zp_addr + 1);
-  uint8_t  zp_lo = read(zp_addr);
-  uint8_t  zp_hi = read(static_cast<uint16_t>(wrapped_addr));
+  uint8_t  zp_lo = read8(zp_addr);
+  uint8_t  zp_hi = read8(static_cast<uint16_t>(wrapped_addr));
   uint16_t addr =
       static_cast<uint16_t>(zp_hi) << 8 | static_cast<uint16_t>(zp_lo);
   return read16(addr);
 }
 
 void NES6502::write(uint16_t addr, uint8_t data) { _bus.write(addr, data); }
+
+void NES6502::push_stk(uint8_t data) {
+  _bus.write(_stp, data);
+  _stp--;
+}
+
+uint8_t NES6502::pop_stk() {
+  _stp++;
+  return _bus.read(_stp);
+}
 
 /* Addressing Modes */
 
@@ -315,13 +339,13 @@ void NES6502::ABSY() { _abs_addr = read_pc16() + _iry; }
 
 void NES6502::ACC() { throw std::runtime_error("ACC not implemented"); }
 
-void NES6502::IMM() { throw std::runtime_error("IMM not implemented"); }
+void NES6502::IMM() { _fetched_data = read_pc8(); }
 
 void NES6502::IMP() { throw std::runtime_error("IMP not implemented"); }
 
 void NES6502::IND() {
-  uint16_t zp_addr = read_pc16();
-  _abs_addr = read16_zp(zp_addr);
+  uint16_t ind_addr = read_pc16();
+  _abs_addr = read16(ind_addr);
 }
 
 void NES6502::INDX() {
@@ -332,8 +356,8 @@ void NES6502::INDX() {
 
 void NES6502::INDY() {
   uint8_t  operand = read_pc8();
-  uint16_t addr = static_cast<uint8_t>(operand + _iry);
-  _abs_addr = read16_zp(addr);
+  uint16_t addr = read16_zp(operand);
+  _abs_addr = addr + _iry;
 }
 
 void NES6502::REL() {
@@ -351,41 +375,34 @@ void NES6502::ZPY() { _abs_addr = static_cast<uint8_t>(read_pc8() + _iry); }
 // Load/Store Operations
 
 uint8_t NES6502::LDA() {
-  throw std::runtime_error("LDA not implemented");
-  uint8_t data = read(_abs_addr);
-  _acc = data;
-  set_zero(data == 0);
-  set_negative(data & 0x80);
-  return data;
+  _acc = read8(_abs_addr);
+  set_zn(_acc);
+  return _acc;
 }
+
 uint8_t NES6502::LDX() {
-  throw std::runtime_error("LDX not implemented");
-  uint8_t data = read(_abs_addr);
-  _irx = data;
-  set_zero(data == 0);
-  set_negative(data & 0x80);
-  return data;
+  _irx = read8(_abs_addr);
+  set_zn(_irx);
+  return _irx;
 }
+
 uint8_t NES6502::LDY() {
-  throw std::runtime_error("LDY not implemented");
-  uint8_t data = read(_abs_addr);
-  _iry = data;
-  set_zero(data == 0);
-  set_negative(data & 0x80);
-  return data;
+  _iry = read8(_abs_addr);
+  set_zn(_iry);
+  return _iry;
 }
+
 uint8_t NES6502::STA() {
-  throw std::runtime_error("STA not implemented");
   _bus.write(_abs_addr, _acc);
   return _acc;
 }
+
 uint8_t NES6502::STX() {
-  throw std::runtime_error("STX not implemented");
   _bus.write(_abs_addr, _irx);
   return _irx;
 }
+
 uint8_t NES6502::STY() {
-  throw std::runtime_error("STY not implemented");
   _bus.write(_abs_addr, _iry);
   return _iry;
 }
@@ -393,92 +410,88 @@ uint8_t NES6502::STY() {
 // Register Transfers
 
 uint8_t NES6502::TAX() {
-  throw std::runtime_error("TAX not implemented");
   _irx = _acc;
-  set_zero(_irx == 0);
-  set_negative(_irx & 0x80);
+  set_zn(_irx);
   return _irx;
 }
+
 uint8_t NES6502::TAY() {
-  throw std::runtime_error("TAY not implemented");
   _iry = _acc;
-  set_zero(_iry == 0);
-  set_negative(_iry & 0x80);
+  set_zn(_iry);
   return _iry;
 }
+
 uint8_t NES6502::TXA() {
-  throw std::runtime_error("TXA not implemented");
   _acc = _irx;
-  set_zero(_acc == 0);
-  set_negative(_acc & 0x80);
+  set_zn(_acc);
   return _acc;
 }
+
 uint8_t NES6502::TYA() {
-  throw std::runtime_error("TYA not implemented");
   _acc = _iry;
-  set_zero(_acc == 0);
-  set_negative(_acc & 0x80);
+  set_zn(_acc);
   return _acc;
 }
 
 // Stack Operations
 
 uint8_t NES6502::TSX() {
-  throw std::runtime_error("TSX not implemented");
   _irx = _stp;
+  set_zn(_irx);
   return _irx;
 }
 uint8_t NES6502::TXS() {
-  throw std::runtime_error("TXS not implemented");
   _stp = _irx;
-  return _irx;
+  return _stp;
 }
+
 uint8_t NES6502::PHA() {
-  throw std::runtime_error("PHA not implemented");
-  _bus.write(_stp, _acc);
-  _stp--;
+  push_stk(_acc);
   return _acc;
 }
-uint8_t NES6502::PHP() { throw std::runtime_error("PHP not implemented"); }
+
+uint8_t NES6502::PHP() {
+  uint8_t pstat = static_cast<uint8_t>(_pstat_r.to_ulong());
+  push_stk(pstat);
+  return pstat;
+}
+
 uint8_t NES6502::PLA() {
-  throw std::runtime_error("PLA not implemented");
-  _acc = _bus.read(_stp);
-  _stp--;
-  set_zero(_acc == 0);
-  set_negative(_acc & 0x80);
+  _acc = pop_stk();
+  set_zn(_acc);
   return _acc;
 }
-uint8_t NES6502::PLP() { throw std::runtime_error("PLP not implemented"); }
+
+uint8_t NES6502::PLP() {
+  uint8_t pstat = pop_stk();
+  _pstat_r = std::bitset<8>(pstat);
+  return pstat;
+}
 
 // Bitwise Operations
 
 uint8_t NES6502::AND() {
-  throw std::runtime_error("AND not implemented");
-  _acc = _acc & read(_abs_addr);
-  set_zero(_acc == 0);
-  set_negative(_acc & 0x80);
+  _acc = _acc & read8(_abs_addr);
+  set_zn(_acc);
   return _acc;
 }
+
 uint8_t NES6502::EOR() {
-  throw std::runtime_error("EOR not implemented");
-  _acc = _acc ^ read(_abs_addr);
-  set_zero(_acc == 0);
-  set_negative(_acc & 0x80);
+  _acc = _acc ^ read8(_abs_addr);
+  set_zn(_acc);
   return _acc;
 }
+
 uint8_t NES6502::ORA() {
-  throw std::runtime_error("ORA not implemented");
-  _acc = _acc | read(_abs_addr);
-  set_zero(_acc == 0);
-  set_negative(_acc & 0x80);
+  _acc = _acc | read8(_abs_addr);
+  set_zn(_acc);
   return _acc;
 }
+
 uint8_t NES6502::BIT() {
-  throw std::runtime_error("BIT not implemented");
-  uint8_t value = _acc & read(_abs_addr);
-  set_zero(value == 0);
+  uint8_t value = _acc & read8(_abs_addr);
+  set_zn(value);
   set_overflow(value & 0x40);
-  set_negative(value & 0x80);
   return value;
 }
 
@@ -486,27 +499,42 @@ uint8_t NES6502::BIT() {
 
 uint8_t NES6502::ADC() {
   throw std::runtime_error("ADC not implemented");
-  uint8_t data = read(_abs_addr);
+  uint8_t data = read8(_abs_addr);
   uint8_t result = _acc + data + get_carry();
   set_carry(result < _acc || result < data);
   set_overflow(result < _acc || result < data);
-  set_zero(result == 0);
-  set_negative(result & 0x80);
+  set_zn(result);
   _acc = result & 0xFF;
   return _acc;
 }
+
 uint8_t NES6502::SBC() {
-  throw std::runtime_error("SBC not implemented");
-  return 0;
+  uint8_t old_acc = _acc;
+  uint8_t data = read8(_abs_addr);
+  uint8_t interm = _acc - data;
+  uint8_t result = interm - (1 - get_carry());
+
+  set_carry(!(check_overflow(_acc, data, interm) |
+              check_overflow(interm, 1 - get_carry(), result)));
+  set_overflow(check_overflow(old_acc, data, result));
+  set_zn(result);
+  _acc = result;
+  return result;
 }
+
 uint8_t NES6502::CMP() {
-  throw std::runtime_error("CMP not implemented");
-  return 0;
+  uint8_t data = read8(_abs_addr);
+  uint8_t result = _acc - data;
+  set_carry(_acc < data);
+  set_zn(result);
+  return result;
 }
+
 uint8_t NES6502::CPX() {
   throw std::runtime_error("CPX not implemented");
   return 0;
 }
+
 uint8_t NES6502::CPY() {
   throw std::runtime_error("CPY not implemented");
   return 0;
@@ -680,3 +708,8 @@ uint8_t NES6502::get_break() { return _pstat_r.test(4) ? (1 << 4) : 0; }
 uint8_t NES6502::get_unused() { return _pstat_r.test(5) ? (1 << 5) : 0; }
 uint8_t NES6502::get_overflow() { return _pstat_r.test(6) ? (1 << 6) : 0; }
 uint8_t NES6502::get_negative() { return _pstat_r.test(7) ? (1 << 7) : 0; }
+
+void NES6502::set_zn(uint8_t val) {
+  set_zero(val == 0);
+  set_negative(val & 0x80);
+}
