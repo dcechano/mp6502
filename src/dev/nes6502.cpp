@@ -7,13 +7,13 @@
 #include <vector>
 
 NES6502::NES6502() {
-  _pc = 0x0000;
-  _stp = 0xFF;
-  _acc = 0;
-  _irx = 0;
-  _iry = 0;
-  _pstat_r.reset();
-  _instr = {
+  pc = 0x0000;
+  stp = 0xFF;
+  acc = 0;
+  irx = 0;
+  iry = 0;
+  pstat_r.reset();
+  instr = {
       {0x00,  &NES6502::IMM,     &NES6502::BRK, 7},
       {0x01, &NES6502::INDX,     &NES6502::ORA, 6},
       {0x02,  &NES6502::IMP, &NES6502::INVALID, 2},
@@ -287,10 +287,9 @@ static bool check_overflow(uint8_t a, uint8_t b, uint8_t result) {
   return (a & 0x80) != (b & 0x80) && (a & 0x80) != (result & 0x80);
 }
 
-
 uint8_t NES6502::read_pc8() {
-  uint8_t byte = _bus.read(_pc);
-  _pc++;
+  uint8_t byte = bus.read(pc);
+  pc++;
   return byte;
 }
 
@@ -300,7 +299,7 @@ uint16_t NES6502::read_pc16() {
   return static_cast<uint16_t>(hi) << 8 | static_cast<uint16_t>(lo);
 }
 
-uint8_t  NES6502::read8(uint16_t addr) { return _bus.read(addr); }
+uint8_t  NES6502::read8(uint16_t addr) { return bus.read(addr); }
 uint16_t NES6502::read16(uint16_t addr) {
   uint8_t lo = read8(addr);
   uint8_t hi = read8(addr + 1);
@@ -317,179 +316,179 @@ uint16_t NES6502::read16_zp(uint16_t zp_addr) {
   return read16(addr);
 }
 
-void NES6502::write(uint16_t addr, uint8_t data) { _bus.write(addr, data); }
+void NES6502::write(uint16_t addr, uint8_t data) { bus.write(addr, data); }
 
 void NES6502::push_stk(uint8_t data) {
-  _bus.write(_stp, data);
-  _stp--;
+  bus.write(stp, data);
+  stp--;
 }
 
 uint8_t NES6502::pop_stk() {
-  _stp++;
-  return _bus.read(_stp);
+  stp++;
+  return bus.read(stp);
 }
 
 /* Addressing Modes */
 
-void NES6502::ABS() { _abs_addr = read_pc16(); }
+void NES6502::ABS() { abs_addr = read_pc16(); }
 
-void NES6502::ABSX() { _abs_addr = read_pc16() + _irx; }
+void NES6502::ABSX() { abs_addr = read_pc16() + irx; }
 
-void NES6502::ABSY() { _abs_addr = read_pc16() + _iry; }
+void NES6502::ABSY() { abs_addr = read_pc16() + iry; }
 
 void NES6502::ACC() { throw std::runtime_error("ACC not implemented"); }
 
-void NES6502::IMM() { _fetched_data = read_pc8(); }
+void NES6502::IMM() { fetched_data = read_pc8(); }
 
 void NES6502::IMP() { throw std::runtime_error("IMP not implemented"); }
 
 void NES6502::IND() {
   uint16_t ind_addr = read_pc16();
-  _abs_addr = read16(ind_addr);
+  abs_addr = read16(ind_addr);
 }
 
 void NES6502::INDX() {
   uint8_t  operand = read_pc8();
-  uint16_t addr = static_cast<uint8_t>(operand + _irx);
-  _abs_addr = read16_zp(addr);
+  uint16_t addr = static_cast<uint8_t>(operand + irx);
+  abs_addr = read16_zp(addr);
 }
 
 void NES6502::INDY() {
   uint8_t  operand = read_pc8();
   uint16_t addr = read16_zp(operand);
-  _abs_addr = addr + _iry;
+  abs_addr = addr + iry;
 }
 
 void NES6502::REL() {
   /// Relative addressing is strange because it is a signed 8-bit offset
   /// masquerading as an unsigned 8-bit offset.
-  _rel_addr = static_cast<uint16_t>(read_pc8());
+  rel_addr = static_cast<uint16_t>(read_pc8());
 }
 
-void NES6502::ZP0() { _abs_addr = read_pc8(); }
-void NES6502::ZPX() { _abs_addr = static_cast<uint8_t>(read_pc8() + _irx); }
-void NES6502::ZPY() { _abs_addr = static_cast<uint8_t>(read_pc8() + _iry); }
+void NES6502::ZP0() { abs_addr = read_pc8(); }
+void NES6502::ZPX() { abs_addr = static_cast<uint8_t>(read_pc8() + irx); }
+void NES6502::ZPY() { abs_addr = static_cast<uint8_t>(read_pc8() + iry); }
 
 /* Operations */
 
 // Load/Store Operations
 
 uint8_t NES6502::LDA() {
-  _acc = read8(_abs_addr);
-  set_zn(_acc);
-  return _acc;
+  acc = read8(abs_addr);
+  set_zn(acc);
+  return acc;
 }
 
 uint8_t NES6502::LDX() {
-  _irx = read8(_abs_addr);
-  set_zn(_irx);
-  return _irx;
+  irx = read8(abs_addr);
+  set_zn(irx);
+  return irx;
 }
 
 uint8_t NES6502::LDY() {
-  _iry = read8(_abs_addr);
-  set_zn(_iry);
-  return _iry;
+  iry = read8(abs_addr);
+  set_zn(iry);
+  return iry;
 }
 
 uint8_t NES6502::STA() {
-  _bus.write(_abs_addr, _acc);
-  return _acc;
+  bus.write(abs_addr, acc);
+  return acc;
 }
 
 uint8_t NES6502::STX() {
-  _bus.write(_abs_addr, _irx);
-  return _irx;
+  bus.write(abs_addr, irx);
+  return irx;
 }
 
 uint8_t NES6502::STY() {
-  _bus.write(_abs_addr, _iry);
-  return _iry;
+  bus.write(abs_addr, iry);
+  return iry;
 }
 
 // Register Transfers
 
 uint8_t NES6502::TAX() {
-  _irx = _acc;
-  set_zn(_irx);
-  return _irx;
+  irx = acc;
+  set_zn(irx);
+  return irx;
 }
 
 uint8_t NES6502::TAY() {
-  _iry = _acc;
-  set_zn(_iry);
-  return _iry;
+  iry = acc;
+  set_zn(iry);
+  return iry;
 }
 
 uint8_t NES6502::TXA() {
-  _acc = _irx;
-  set_zn(_acc);
-  return _acc;
+  acc = irx;
+  set_zn(acc);
+  return acc;
 }
 
 uint8_t NES6502::TYA() {
-  _acc = _iry;
-  set_zn(_acc);
-  return _acc;
+  acc = iry;
+  set_zn(acc);
+  return acc;
 }
 
 // Stack Operations
 
 uint8_t NES6502::TSX() {
-  _irx = _stp;
-  set_zn(_irx);
-  return _irx;
+  irx = stp;
+  set_zn(irx);
+  return irx;
 }
 uint8_t NES6502::TXS() {
-  _stp = _irx;
-  return _stp;
+  stp = irx;
+  return stp;
 }
 
 uint8_t NES6502::PHA() {
-  push_stk(_acc);
-  return _acc;
+  push_stk(acc);
+  return acc;
 }
 
 uint8_t NES6502::PHP() {
-  uint8_t pstat = static_cast<uint8_t>(_pstat_r.to_ulong());
+  uint8_t pstat = static_cast<uint8_t>(pstat_r.to_ulong());
   push_stk(pstat);
   return pstat;
 }
 
 uint8_t NES6502::PLA() {
-  _acc = pop_stk();
-  set_zn(_acc);
-  return _acc;
+  acc = pop_stk();
+  set_zn(acc);
+  return acc;
 }
 
 uint8_t NES6502::PLP() {
   uint8_t pstat = pop_stk();
-  _pstat_r = std::bitset<8>(pstat);
+  pstat_r = std::bitset<8>(pstat);
   return pstat;
 }
 
 // Bitwise Operations
 
 uint8_t NES6502::AND() {
-  _acc = _acc & read8(_abs_addr);
-  set_zn(_acc);
-  return _acc;
+  acc = acc & read8(abs_addr);
+  set_zn(acc);
+  return acc;
 }
 
 uint8_t NES6502::EOR() {
-  _acc = _acc ^ read8(_abs_addr);
-  set_zn(_acc);
-  return _acc;
+  acc = acc ^ read8(abs_addr);
+  set_zn(acc);
+  return acc;
 }
 
 uint8_t NES6502::ORA() {
-  _acc = _acc | read8(_abs_addr);
-  set_zn(_acc);
-  return _acc;
+  acc = acc | read8(abs_addr);
+  set_zn(acc);
+  return acc;
 }
 
 uint8_t NES6502::BIT() {
-  uint8_t value = _acc & read8(_abs_addr);
+  uint8_t value = acc & read8(abs_addr);
   set_zn(value);
   set_overflow(value & 0x40);
   return value;
@@ -499,33 +498,33 @@ uint8_t NES6502::BIT() {
 
 uint8_t NES6502::ADC() {
   throw std::runtime_error("ADC not implemented");
-  uint8_t data = read8(_abs_addr);
-  uint8_t result = _acc + data + get_carry();
-  set_carry(result < _acc || result < data);
-  set_overflow(result < _acc || result < data);
+  uint8_t data = read8(abs_addr);
+  uint8_t result = acc + data + get_carry();
+  set_carry(result < acc || result < data);
+  set_overflow(result < acc || result < data);
   set_zn(result);
-  _acc = result & 0xFF;
-  return _acc;
+  acc = result & 0xFF;
+  return acc;
 }
 
 uint8_t NES6502::SBC() {
-  uint8_t old_acc = _acc;
-  uint8_t data = read8(_abs_addr);
-  uint8_t interm = _acc - data;
+  uint8_t old_acc = acc;
+  uint8_t data = read8(abs_addr);
+  uint8_t interm = acc - data;
   uint8_t result = interm - (1 - get_carry());
 
-  set_carry(!(check_overflow(_acc, data, interm) |
+  set_carry(!(check_overflow(acc, data, interm) |
               check_overflow(interm, 1 - get_carry(), result)));
   set_overflow(check_overflow(old_acc, data, result));
   set_zn(result);
-  _acc = result;
+  acc = result;
   return result;
 }
 
 uint8_t NES6502::CMP() {
-  uint8_t data = read8(_abs_addr);
-  uint8_t result = _acc - data;
-  set_carry(_acc < data);
+  uint8_t data = read8(abs_addr);
+  uint8_t result = acc - data;
+  set_carry(acc < data);
   set_zn(result);
   return result;
 }
@@ -689,27 +688,27 @@ uint8_t NES6502::INVALID() {
   return 0;
 }
 
-void    NES6502::set_carry(bool flag) { _pstat_r.set(0, flag); }
-void    NES6502::set_zero(bool flag) { _pstat_r.set(1, flag); }
-void    NES6502::set_interrupt_disable(bool flag) { _pstat_r.set(2, flag); }
-void    NES6502::set_decimal_mode(bool flag) { _pstat_r.set(3, flag); }
-void    NES6502::set_break(bool flag) { _pstat_r.set(4, flag); }
-void    NES6502::set_unused(bool flag) { _pstat_r.set(5, flag); }
-void    NES6502::set_overflow(bool flag) { _pstat_r.set(6, flag); }
-void    NES6502::set_negative(bool flag) { _pstat_r.set(7, flag); }
+void    NES6502::set_carry(bool flag) { pstat_r.set(0, flag); }
+void    NES6502::set_zero(bool flag) { pstat_r.set(1, flag); }
+void    NES6502::set_interrupt_disable(bool flag) { pstat_r.set(2, flag); }
+void    NES6502::set_decimal_mode(bool flag) { pstat_r.set(3, flag); }
+void    NES6502::set_break(bool flag) { pstat_r.set(4, flag); }
+void    NES6502::set_unused(bool flag) { pstat_r.set(5, flag); }
+void    NES6502::set_overflow(bool flag) { pstat_r.set(6, flag); }
+void    NES6502::set_negative(bool flag) { pstat_r.set(7, flag); }
 
-uint8_t NES6502::get_carry() { return _pstat_r.test(0) ? 1 : 0; }
-uint8_t NES6502::get_zero() { return _pstat_r.test(1) ? (1 << 1) : 0; }
+uint8_t NES6502::get_carry() { return pstat_r.test(0) ? 1 : 0; }
+uint8_t NES6502::get_zero() { return pstat_r.test(1) ? (1 << 1) : 0; }
 uint8_t NES6502::get_interrupt_disable() {
-  return _pstat_r.test(2) ? (1 << 2) : 0;
+  return pstat_r.test(2) ? (1 << 2) : 0;
 }
-uint8_t NES6502::get_decimal_mode() { return _pstat_r.test(3) ? (1 << 3) : 0; }
-uint8_t NES6502::get_break() { return _pstat_r.test(4) ? (1 << 4) : 0; }
-uint8_t NES6502::get_unused() { return _pstat_r.test(5) ? (1 << 5) : 0; }
-uint8_t NES6502::get_overflow() { return _pstat_r.test(6) ? (1 << 6) : 0; }
-uint8_t NES6502::get_negative() { return _pstat_r.test(7) ? (1 << 7) : 0; }
+uint8_t NES6502::get_decimal_mode() { return pstat_r.test(3) ? (1 << 3) : 0; }
+uint8_t NES6502::get_break() { return pstat_r.test(4) ? (1 << 4) : 0; }
+uint8_t NES6502::get_unused() { return pstat_r.test(5) ? (1 << 5) : 0; }
+uint8_t NES6502::get_overflow() { return pstat_r.test(6) ? (1 << 6) : 0; }
+uint8_t NES6502::get_negative() { return pstat_r.test(7) ? (1 << 7) : 0; }
 
-void NES6502::set_zn(uint8_t val) {
+void    NES6502::set_zn(uint8_t val) {
   set_zero(val == 0);
   set_negative(val & 0x80);
 }

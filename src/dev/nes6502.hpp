@@ -13,25 +13,25 @@ public:
 
 private:
   /* Opcode. The current instruction being executed. */
-  uint8_t _opcode;
+  uint8_t opcode;
   /* Program Counter. The address of the next instruction to be executed. */
-  uint16_t _pc;
+  uint16_t pc;
   /* Stack Pointer. 0xFF is the top of the stack.
    * Pushing values to the stack decrements the stack pointer.
    */
-  uint8_t _stp;
+  uint8_t stp;
   /* Accumulator. The register that holds the result of arithmetic operations. */
-  uint8_t _acc;
+  uint8_t acc;
   /* Index Register X. The register that holds the index for indexed addressing modes. */
-  uint8_t _irx;
+  uint8_t irx;
   /* Index Register Y. The register that holds the index for indexed addressing modes. */
-  uint8_t _iry;
+  uint8_t iry;
   /* Data fetched from memory */
-  uint8_t _fetched_data;
+  uint8_t fetched_data;
   /* Memory address */
-  uint16_t _abs_addr;
+  uint16_t abs_addr;
   /* Relative address */
-  uint16_t _rel_addr;
+  uint16_t rel_addr;
 
   /*
    * Processor Status Register
@@ -52,7 +52,7 @@ private:
    * |+---- Overflow
    * +-- Negative
    */
-  std::bitset<8> _pstat_r;
+  std::bitset<8> pstat_r;
 
   struct Instruction {
     uint8_t opcode;
@@ -60,9 +60,9 @@ private:
     uint8_t (NES6502::*op_exec)(void) = nullptr;
     uint8_t cycles;
   };
-  std::vector<Instruction> _instr;
+  std::vector<Instruction> instr;
 
-  Bus                      _bus;
+  Bus                      bus;
 
 private:
   /* Cycle operations */
