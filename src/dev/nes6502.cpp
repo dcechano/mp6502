@@ -287,6 +287,13 @@ static bool check_overflow(uint8_t a, uint8_t b, uint8_t result) {
   return (a & 0x80) != (b & 0x80) && (a & 0x80) != (result & 0x80);
 }
 
+uint8_t NES6502::fetch() {
+  if (curr_inst.addr_mode != &NES6502::IMP) {
+    fetched_data = read8(abs_addr);
+  }
+  return fetched_data;
+}
+
 uint8_t NES6502::read_pc8() {
   uint8_t byte = bus.read(pc);
   pc++;
@@ -338,7 +345,7 @@ void NES6502::ABSY() { abs_addr = read_pc16() + iry; }
 
 void NES6502::ACC() { throw std::runtime_error("ACC not implemented"); }
 
-void NES6502::IMM() { fetched_data = read_pc8(); }
+void NES6502::IMM() { /* Do nothing */ }
 
 void NES6502::IMP() { throw std::runtime_error("IMP not implemented"); }
 
@@ -374,19 +381,19 @@ void NES6502::ZPY() { abs_addr = static_cast<uint8_t>(read_pc8() + iry); }
 // Load/Store Operations
 
 uint8_t NES6502::LDA() {
-  acc = read8(abs_addr);
+  acc = fetch();
   set_zn(acc);
   return acc;
 }
 
 uint8_t NES6502::LDX() {
-  irx = read8(abs_addr);
+  irx = fetch();
   set_zn(irx);
   return irx;
 }
 
 uint8_t NES6502::LDY() {
-  iry = read8(abs_addr);
+  iry = fetch();
   set_zn(iry);
   return iry;
 }
@@ -470,27 +477,27 @@ uint8_t NES6502::PLP() {
 // Bitwise Operations
 
 uint8_t NES6502::AND() {
-  acc = acc & read8(abs_addr);
+  acc = acc & fetch();
   set_zn(acc);
   return acc;
 }
 
 uint8_t NES6502::EOR() {
-  acc = acc ^ read8(abs_addr);
+  acc = acc ^ fetch();
   set_zn(acc);
   return acc;
 }
 
 uint8_t NES6502::ORA() {
-  acc = acc | read8(abs_addr);
+  acc = acc | fetch();
   set_zn(acc);
   return acc;
 }
 
 uint8_t NES6502::BIT() {
-  uint8_t value = acc & read8(abs_addr);
+  uint8_t value = acc & fetch();
   set_zn(value);
-  set_overflow(value & 0x40);
+  set_overflow((value & 0x40) == 0x40);
   return value;
 }
 
@@ -498,7 +505,7 @@ uint8_t NES6502::BIT() {
 
 uint8_t NES6502::ADC() {
   throw std::runtime_error("ADC not implemented");
-  uint8_t data = read8(abs_addr);
+  uint8_t data = fetch();
   uint8_t result = acc + data + get_carry();
   set_carry(result < acc || result < data);
   set_overflow(result < acc || result < data);
@@ -509,7 +516,7 @@ uint8_t NES6502::ADC() {
 
 uint8_t NES6502::SBC() {
   uint8_t old_acc = acc;
-  uint8_t data = read8(abs_addr);
+  uint8_t data = fetch();
   uint8_t interm = acc - data;
   uint8_t result = interm - (1 - get_carry());
 
@@ -522,67 +529,148 @@ uint8_t NES6502::SBC() {
 }
 
 uint8_t NES6502::CMP() {
-  uint8_t data = read8(abs_addr);
+  uint8_t data = fetch();
   uint8_t result = acc - data;
-  set_carry(acc < data);
+  /*
+    FLAGS
+    Carry set HIGH if A >= M otherwise set LOW
+    Negative is set HIGH or LOW according to bit 7 of the result
+    Zero is set HIGH if the result is 0 otherwise set LOW
+  */
+  set_carry(acc >= data);
   set_zn(result);
   return result;
 }
 
 uint8_t NES6502::CPX() {
-  throw std::runtime_error("CPX not implemented");
-  return 0;
+  uint8_t data = fetch();
+  uint8_t result = irx - data;
+  set_carry(irx >= data);
+  set_zn(result);
+  return result;
 }
 
 uint8_t NES6502::CPY() {
-  throw std::runtime_error("CPY not implemented");
-  return 0;
+  uint8_t data = fetch();
+  uint8_t result = iry - data;
+  set_carry(iry >= data);
+  set_zn(result);
+  return result;
 }
 
 // Increment/Decrement Operations
 
 uint8_t NES6502::INC() {
-  throw std::runtime_error("INC not implemented");
-  return 0;
+  uint8_t data = fetch();
+  write(abs_addr, data + 1);
+  set_zn(data + 1);
+  return data + 1;
 }
+
 uint8_t NES6502::INX() {
-  throw std::runtime_error("INX not implemented");
-  return 0;
+  irx++;
+  set_zn(irx);
+  return irx;
 }
 uint8_t NES6502::INY() {
-  throw std::runtime_error("INY not implemented");
-  return 0;
+  iry++;
+  set_zn(iry);
+  return iry;
 }
+
 uint8_t NES6502::DEC() {
-  throw std::runtime_error("DEC not implemented");
-  return 0;
+  uint8_t data = fetch();
+  write(abs_addr, data - 1);
+  set_zn(data - 1);
+  return data - 1;
 }
+
 uint8_t NES6502::DEX() {
-  throw std::runtime_error("DEX not implemented");
-  return 0;
+  irx--;
+  set_zn(irx);
+  return irx;
 }
 uint8_t NES6502::DEY() {
-  throw std::runtime_error("DEY not implemented");
-  return 0;
+  iry--;
+  set_zn(iry);
+  return iry;
 }
 
 // Shift Operations
 
 uint8_t NES6502::ASL() {
-  throw std::runtime_error("ASL not implemented");
-  return 0;
+  if (curr_inst.addr_mode == &NES6502::ACC) {
+    // Carry is determined by bit 7 BEFORE the shift.
+    bool carry = acc & 0x80;
+    acc = acc << 1;
+    set_carry(carry);
+    set_zn(acc);
+    return acc;
+  }
+  uint8_t data = fetch();
+  // Carry is determined by bit 7 BEFORE the shift.
+  bool carry = data & 0x80;
+  write(abs_addr, data << 1);
+  set_carry(carry);
+  set_zn(data << 1);
+  return data << 1;
 }
+
 uint8_t NES6502::LSR() {
-  throw std::runtime_error("LSR not implemented");
-  return 0;
+  if (curr_inst.addr_mode == &NES6502::ACC) {
+    // Carry is determined by bit 0 AFTER the shift.
+    bool carry = acc & 0x01;
+    acc = acc >> 1;
+    set_carry(carry);
+    set_zn(acc);
+    return acc;
+  }
+  uint8_t data = fetch();
+  // Carry is determined by bit 0 BEFORE the shift.
+  bool carry = data & 0x01;
+  write(abs_addr, data >> 1);
+  set_carry(carry);
+  set_zn(data >> 1);
+  return data >> 1;
 }
+
 uint8_t NES6502::ROL() {
-  throw std::runtime_error("ROL not implemented");
-  return 0;
+  if (curr_inst.addr_mode == &NES6502::ACC) {
+    // Carry is determined by bit 0 AFTER the shift.
+    bool carry = acc & 0x01;
+    acc = acc >> 1;
+    set_carry(carry);
+    set_zn(acc);
+    return acc;
+  }
+  uint8_t data = fetch();
+  // Carry is determined by bit 0 BEFORE the shift.
+  bool carry = data & 0x01;
+  write(abs_addr, data >> 1);
+  set_carry(carry);
+  set_zn(data >> 1);
+  return data >> 1;
 }
 uint8_t NES6502::ROR() {
-  throw std::runtime_error("ROR not implemented");
-  return 0;
+  // Bit 0 is shifted into the carry flag
+  // Bit 7 is shifted into bit 0
+  uint8_t bit7 = get_carry() ? 0x80 : 0x00;
+  if (curr_inst.addr_mode == &NES6502::ACC) {
+    // Carry is determined by bit 0 AFTER the shift.
+    bool    carry = acc & 0x01;
+    acc = (acc >> 1) | bit7;
+    set_carry(carry);
+    set_zn(acc);
+    return acc;
+  }
+  uint8_t data = fetch();
+  // Carry is determined by bit 0 BEFORE the shift.
+  bool carry = data & 0x01;
+  uint8_t result = (data >> 1) | bit7;
+  write(abs_addr, result);
+  set_carry(carry);
+  set_zn(result);
+  return result;
 }
 
 // Jump Operations
@@ -710,5 +798,5 @@ uint8_t NES6502::get_negative() { return pstat_r.test(7) ? (1 << 7) : 0; }
 
 void    NES6502::set_zn(uint8_t val) {
   set_zero(val == 0);
-  set_negative(val & 0x80);
+  set_negative((val & 0x80) == 0x80);
 }

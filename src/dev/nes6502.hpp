@@ -6,14 +6,14 @@
 #include <cstdint>
 #include <vector>
 
+struct Instruction;
+
 class NES6502 {
 public:
   NES6502();
   ~NES6502();
 
 private:
-  /* Opcode. The current instruction being executed. */
-  uint8_t opcode;
   /* Program Counter. The address of the next instruction to be executed. */
   uint16_t pc;
   /* Stack Pointer. 0xFF is the top of the stack.
@@ -61,11 +61,16 @@ private:
     uint8_t cycles;
   };
   std::vector<Instruction> instr;
+  /* The current instruction being executed. */
+  Instruction curr_inst;
 
-  Bus                      bus;
+  Bus         bus;
 
 private:
-  /* Cycle operations */
+  /* Fetch the next operand to the current instruction. Reads from the
+   * abs_addr and returns the value read.
+   */
+  uint8_t fetch();
 
   /* Fetch the next byte pointed to by the program counter.
    * Increments the program counter by 1.
@@ -463,7 +468,7 @@ private:
   uint8_t SBC();
 
   /**
-   * Compares the contents of the accumulator with a memory location.
+   * Compares the contents of the accumulator with a memory location (A - M).
    * Sets the carry, zero, and negative flags based on the comparison.
    * 
    * @return The result of the comparison (accumulator - memory)
@@ -471,7 +476,7 @@ private:
   uint8_t CMP();
 
   /**
-   * Compares the contents of the X register with a memory location.
+   * Compares the contents of the X register with a memory location (X - M).
    * Sets the carry, zero, and negative flags based on the comparison.
    * 
    * @return The result of the comparison (X register - memory)
@@ -479,7 +484,7 @@ private:
   uint8_t CPX();
 
   /**
-   * Compares the contents of the Y register with a memory location.
+   * Compares the contents of the Y register with a memory location (Y - M).
    * Sets the carry, zero, and negative flags based on the comparison.
    * 
    * @return The result of the comparison (Y register - memory)
